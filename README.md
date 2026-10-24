@@ -99,3 +99,6 @@ proofstack/
 Todos os nomes, eventos, políticas, personagens e aplicações simuladas são inventados. Nenhum comando é executado contra ambientes reais. Não existe coleta de credenciais, envio de dados a servidores ou API de IA. O texto adicionado pelo jogador é tratado como texto, não como HTML executável. O relatório pode conter notas digitadas por você: revise-o antes de compartilhá-lo.
 
 Veja `ARCHITECTURE.md` para o contrato do motor, `ROADMAP.md` para versões propostas e `COMO_PUBLICAR.md` para GitHub Pages.
+
+## v0.1.1 — Conversas por chamado
+Na aba **Conversa** de cada chamado, escreva mensagens livres ou use sugestões. O personagem responde de forma roteirizada (não é IA). A primeira mensagem enviada conta como primeira resposta para o SLA, e o histórico é salvo localmente. A tomada de decisão do chamado continua disponível na aba Atendimento.

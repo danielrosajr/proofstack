@@ -1,3 +1,11 @@
+## v0.1.1 — Ticket Conversations
+
+- Conversa bidirecional por chamado com histórico persistente.
+- Mensagens personalizadas e sugestões rápidas.
+- Respostas roteirizadas dos funcionários; sem IA.
+- Primeira mensagem conta como primeiro contato para SLA.
+- Detecção de solicitação insegura de senhas ou códigos.
+
 # Changelog
 
 Formato inspirado em Keep a Changelog. Versões SemVer.

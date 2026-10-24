@@ -119,6 +119,47 @@ export function sendReply(state, id, quality = 'clear') {
   next.flash = quality === 'clear' ? 'Primeira resposta registrada corretamente.' : 'Resposta enviada. Confira o histórico e as consequências dessa comunicação.'
   return next
 }
+// Scripted two-way conversations. Deterministic and persisted with the ticket.
+export const conversationSuggestions = [
+  'Olá! Recebi seu chamado. Pode detalhar o que acontece?',
+  'Qual mensagem de erro aparece e quando começou?',
+  'Você poderia confirmar se o problema continua?',
+  'Vou seguir o procedimento e atualizar você sobre os próximos passos.'
+]
+export function sendConversation(state, id, message) {
+  if (!ready(state, id)) return state
+  const clean = typeof message === 'string' ? message.trim().slice(0, 500) : ''
+  const next = structuredClone(state)
+  if (!clean) { next.flash = 'Digite uma mensagem antes de enviar.'; return next }
+  const ticket = next.tickets[id]
+  if (!ticket.conversation) ticket.conversation = []
+  const lower = clean.toLocaleLowerCase('pt-BR')
+  const isSensitive = /(?:me envie|mande|informe|compartilhe|qual é).{0,35}(?:senha|password|código de verificação|token)/i.test(clean)
+  const critical = isSensitive ? 'Solicitou segredo ou senha no chat corporativo.' : null
+  ticket.conversation.push({ at: next.elapsed, from: 'agent', text: clean })
+  record(next, id, 'chat-out', `Mensagem ao solicitante: ${clean}`, critical)
+  if (ticket.firstResponseAt === null) {
+    ticket.firstResponseAt = next.elapsed
+    ticket.replyQuality = critical ? 'password' : /(?:garanto|prometo|100%|certeza que)/i.test(clean) ? 'promise' : 'clear'
+    addFlags(ticket, ['contacted', ...(!critical && ticket.replyQuality === 'clear' ? ['clear_contact'] : [])])
+  }
+  if (ticket.status === 'novo') ticket.status = 'em_andamento'
+  const s = scenarioById[id]
+  let response = `Obrigado pelo retorno. Sobre "${s.title.toLowerCase()}", aguardo a orientação do suporte.`
+  if (critical) response = 'Não me sinto confortável enviando senhas ou códigos por mensagem. Há outro procedimento?'
+  else if (/erro|mensagem|quando começou|detalh|acontece|sintoma/.test(lower)) {
+    response = ({'NS-1001':'Tentei entrar hoje de manhã e aparece que a senha está incorreta.','NS-1002':'Preciso do ERP financeiro para minhas novas tarefas, mas ainda não vi aprovação oficial.','NS-1003':'Vejo o erro 691. Troquei a senha hoje e a internet está funcionando.','NS-1004':'Não achei a Wiki no Portal interno. Pode me orientar?','NS-1005':'Já espero há algum tempo. Só preciso saber se existe previsão confirmada.','NS-1006':'Eu disse que sou diretor. Preciso disso agora!','NS-1007':'O ERP exibe 503 e o Financeiro inteiro está sem acesso.','NS-1008':'Nós duas recebemos erro 502 no CRM desde 10h20.'})[id] || response
+  } else if (/confirm|continua|funcion|resolv|voltou/.test(lower)) {
+    response = ({'NS-1001':'Ainda não recebi um procedimento de redefinição autorizado.','NS-1002':'O acesso ainda não foi liberado.','NS-1003':'Ainda não testei uma nova sessão VPN.','NS-1004':'Se você me passar o caminho correto, eu tento acessar.','NS-1005':'Ainda estou aguardando uma atualização da equipe responsável.','NS-1006':'Quero a reativação, independente disso.','NS-1007':'Não, o ERP continua indisponível para a equipe.','NS-1008':'O erro 502 continua aparecendo para nós.'})[id] || response
+  } else if (/próximo|procedimento|encaminh|atualiz|analis|verific/.test(lower)) response = 'Entendi. Obrigado por informar os próximos passos; fico no aguardo da atualização.'
+  else if (/oi|olá|bom dia/.test(lower)) response = 'Olá! Obrigado por responder. Você conseguiu ler a descrição do meu problema?'
+  ticket.conversation.push({ at: next.elapsed + 1, from: 'employee', text: response })
+  record(next, id, 'chat-in', `${s.requester}: ${response}`)
+  consume(next, 2)
+  next.flash = critical ? 'Mensagem insegura registrada. O personagem recusou compartilhar segredos.' : 'Mensagem enviada e resposta simulada recebida. Confira a conversa.'
+  return next
+}
+
 export function saveNote(state, id, note) {
   if (!ready(state, id)) return state
   const clean = typeof note === 'string' ? note.trim().slice(0, 800) : ''

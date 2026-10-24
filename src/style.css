@@ -27,3 +27,16 @@ body {margin:0} button,input,select,textarea {font:inherit} button {cursor:point
 @media print {body,.app-root,.workspace {background:#fff!important;color:#111!important}.sidebar,.topbar,.tutorial-banner,.flash-notice,.workspace-footer,.heading-buttons,.button,.modal-overlay,.context-indicator {display:none!important}.content-scroll {padding:5px!important;max-width:none!important}.panel,.kpi-card,.report-disclaimer {box-shadow:none!important;background:#fff!important;color:#111!important;border:1px solid #ccc!important;break-inside:avoid}.report-events {max-height:none!important;overflow:visible!important}.report-history,.report-panel {break-inside:auto}.report-event {break-inside:avoid}.reports-grid {grid-template-columns:1fr 1fr}.progress {background:#eee!important}.progress span {background:#7871bb!important} @page {size:A4;margin:14mm}}
 
 .related-reports {margin-top:12px;padding:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px}.related-reports>div:not(:first-child){display:flex;align-items:center;flex-wrap:wrap;gap:11px;border-top:1px solid var(--line);padding:11px 0 0;margin-top:9px;font-size:11px}.related-reports b{color:var(--accent-text)}.related-reports span{flex:1}.related-reports small{color:var(--quiet)}
+
+/* v0.1.1 - ticket conversations */
+.ps-chat-thread {display:flex;flex-direction:column;gap:12px;max-height:460px;overflow:auto;padding:18px 4px}
+.ps-message {max-width:87%;padding:13px 16px;border-radius:15px;background:var(--surface-2,rgba(140,150,170,.13));overflow-wrap:anywhere}
+.ps-message.ps-outgoing {align-self:flex-end;background:rgba(46,136,237,.18)}
+.ps-message.ps-incoming {align-self:flex-start}
+.ps-message strong {font-size:12px;display:block;margin-bottom:5px}
+.ps-message p {margin:0 0 5px;white-space:pre-wrap}
+.ps-message small {opacity:.65}
+.ps-chat-compose {display:flex;flex-direction:column;gap:12px;margin:10px 0 25px}
+.ps-chat-compose textarea {width:100%;box-sizing:border-box;min-height:90px;padding:12px;border-radius:10px;border:1px solid var(--border,rgba(140,150,170,.3));background:var(--surface,transparent);color:inherit}
+.ps-suggestions {display:flex;flex-wrap:wrap;gap:6px}
+.ps-chat-compose>.button {align-self:flex-end}

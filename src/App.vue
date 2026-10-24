@@ -10,7 +10,7 @@ import {
 import { employees, knowledge, glossary, priorityPolicy } from './data/world.js'
 import { scenarios, scenarioById } from './data/scenarios.js'
 import {
-  initSession, advance, sendReply, saveNote, inspectKnowledge, inspectEmployee,
+  initSession, advance, sendReply, sendConversation, conversationSuggestions, saveNote, inspectKnowledge, inspectEmployee,
   inspectMonitor, performChoice, setWaiting, closeTicket, getSla, clock, canEnd,
   endSession, evaluate, loadSession, persistSession, forgetSession, unmet, TERMINAL
 } from './engine/simulator.js'
@@ -20,6 +20,7 @@ const theme = ref((() => { try { return localStorage.getItem('proofstack:theme')
 const menuOpen = ref(false)
 const replyQuality = ref('clear')
 const noteText = ref('')
+const chatText = ref('')
 const kbSearch = ref('')
 const peopleSearch = ref('')
 const knowledgeSelected = ref('password')
@@ -81,6 +82,7 @@ function chooseTicket(id) {
   state.value.activeView = 'desk'
   detailTab.value = 'play'
   noteText.value = ''
+  chatText.value = ''
   menuOpen.value = false
 }
 function readKnowledge(id) {
@@ -96,6 +98,7 @@ function chooseOption(choice) {
   if (choice.critical && !window.confirm('Esta decisão apresenta um risco importante de segurança. Deseja simular esta ação e registrar a consequência?')) return
   state.value = performChoice(state.value, scenario.value.id, choice.id)
 }
+function doChat() { if (!state.value || !scenario.value) return; const message = chatText.value.trim(); if (!message) return; state.value = sendConversation(state.value, scenario.value.id, message); chatText.value = '' }
 function doReply() { state.value = sendReply(state.value, scenario.value.id, replyQuality.value) }
 function doNote() { state.value = saveNote(state.value, scenario.value.id, noteText.value); if (noteText.value.trim().length >= 8) noteText.value = '' }
 function doWait(value) { state.value = setWaiting(state.value, scenario.value.id, value) }
@@ -190,12 +193,12 @@ function formatSla(used, target, isDone) { return `${used}/${target} min${isDone
               </div></div>
               <div v-if="scenario && ticket.visible" class="panel ticket-detail"><div class="ticket-detail-heading"><div class="detail-meta"><span class="ticket-id">{{ scenario.id }}</span><span :class="['prio-label', sla?.priority?.toLowerCase()]">{{ sla?.priority }} · {{ priorityPolicy[sla.priority].label }}</span><span :class="['state-chip', statusClass(ticket.status)]">{{ statusText(ticket.status) }}</span></div><h2>{{ scenario.title }}</h2><div class="detail-subline"><span><UsersRound :size="14"/> {{ scenario.requester }} · {{ scenario.department }}</span><span><Clock3 :size="14"/> Aberto às {{ clock(ticket.openedAt) }}</span></div></div>
                 <div class="sla-strip"><div><span>1ª RESPOSTA</span><strong :class="{ danger: sla.responseBreach }">{{ sla.responseUsed }} <small>/ {{ sla.responseTarget }} min</small></strong><div class="progress"><span :class="{ red: sla.responseBreach }" :style="{ width: Math.min(100, 100 * sla.responseUsed / sla.responseTarget) + '%' }"/></div></div><div><span>TRATAMENTO (PAUSA APLICÁVEL)</span><strong :class="{ danger: sla.resolutionBreach }">{{ sla.resolutionUsed }} <small>/ {{ sla.resolutionTarget }} min</small></strong><div class="progress"><span :class="{ red: sla.resolutionBreach }" :style="{ width: Math.min(100, 100 * sla.resolutionUsed / sla.resolutionTarget) + '%' }"/></div></div></div>
-                <div class="detail-tabs"><button :class="{ active: detailTab === 'play' }" @click="detailTab='play'">Atendimento</button><button :class="{ active: detailTab === 'history' }" @click="detailTab='history'">Histórico <span>{{ ticket.history.length }}</span></button></div>
+                <div class="detail-tabs"><button :class="{ active: detailTab === 'play' }" @click="detailTab='play'">Atendimento</button><button :class="{ active: detailTab === 'chat' }" @click="detailTab='chat'">Conversa <span>{{ ticket.conversation?.length || 0 }}</span></button><button :class="{ active: detailTab === 'history' }" @click="detailTab='history'">Histórico <span>{{ ticket.history.length }}</span></button></div>
                 <div v-if="detailTab === 'play'" class="detail-body"><div class="request-box"><div class="request-overline">SOLICITAÇÃO ORIGINAL</div><p>“{{ scenario.description }}”</p><div class="request-facts"><span>Impacto: <b>{{ scenario.impact }}</b></span><span>Urgência: <b>{{ scenario.urgency }}</b></span><span>Categoria: <b>{{ scenario.category }}</b></span></div></div>
                   <div v-if="scenario.relatedReports?.length" class="related-reports"><div class="request-overline">RELATOS RELACIONADOS A INVESTIGAR</div><div v-for="r in scenario.relatedReports" :key="r.id"><b>{{ r.id }}</b><span>{{ r.requester }}</span><small>{{ r.error }} · {{ r.at }}</small></div></div>
                   <template v-if="!isTerminal && !finished"><div class="task-separator"><div class="task-step">1</div><strong>Registre o primeiro contato</strong><span v-if="ticket.firstResponseAt !== null" class="done-text"><CheckCircle2 :size="16"/> Registrado às {{ clock(ticket.firstResponseAt) }}</span></div>
                     <div v-if="ticket.firstResponseAt === null" class="contact-box"><label for="reply-quality">Escolha a mensagem que será enviada ao solicitante</label><select id="reply-quality" v-model="replyQuality"><option value="clear">“Recebemos a solicitação. Vou investigar e informar próximos passos.”</option><option value="promise">“Garanto que estará resolvido em dois minutos.”</option><option value="password">“Envie sua senha atual por mensagem.” (INSEGURO)</option></select><button class="button primary" @click="doReply"><Send :size="15"/> Enviar primeira resposta</button></div><p v-else class="subtle-info">Mensagem e horário salvos no histórico. Você ainda pode consultar as ferramentas e registrar notas.</p>
-                    <div class="task-separator"><div class="task-step">2</div><strong>Investigue e tome decisões</strong><span class="step-counter">{{ (scenario.stages.findIndex(s=>s.id===ticket.stage)+1) || 1 }} / {{ scenario.stages.length }}</span></div>
+                    <button class="button subtle compact" @click="detailTab='chat'"> <MessageSquare :size="15"/> Abrir conversa com o solicitante</button><div class="task-separator"><div class="task-step">2</div><strong>Investigue e tome decisões</strong><span class="step-counter">{{ (scenario.stages.findIndex(s=>s.id===ticket.stage)+1) || 1 }} / {{ scenario.stages.length }}</span></div>
                     <div v-if="hasPause" class="pause-box"><Pause :size="21"/><div><strong>O chamado está em espera</strong><p>O tempo de solução fica pausado conforme a política fictícia. Retome para tomar decisões.</p><button class="button primary compact" @click="doWait('retomar')"><Play :size="14"/> Retomar chamado</button></div></div>
                     <div v-else-if="stage" class="decision-box"><div class="decision-heading"><span class="micro-heading">ETAPA ATUAL</span><h3>{{ stage.title }}</h3><p>{{ stage.prompt }}</p></div><div class="choices"><button v-for="choice in stage.options" :key="choice.id" :disabled="unmet(state,scenario.id,choice.requires).length>0" :class="['choice-button', { risky: choice.critical || choice.tone === 'bad' }]" @click="chooseOption(choice)"><span class="choice-dot">{{ choice.critical ? '!' : '→' }}</span><span><strong>{{ choice.text }}</strong><small v-if="unmet(state,scenario.id,choice.requires).length">Antes: {{ unmet(state,scenario.id,choice.requires).join(' · ') }}</small><small v-else-if="choice.critical">Decisão simulada com consequência de segurança</small></span><ChevronRight :size="17"/></button></div></div>
                     <div class="tools-box"><span class="micro-heading">FERRAMENTAS DE INVESTIGAÇÃO</span><div><button v-for="kbId in scenario.kb" :key="kbId" class="tool-button" @click="readKnowledge(kbId); changeView('knowledge')"><BookOpen :size="16"/> Procedimento {{ knowledge.find(k=>k.id===kbId)?.code }} <ArrowUpRight :size="14"/></button><button class="tool-button" @click="readEmployee(scenario.employee);changeView('directory')"><UsersRound :size="16"/> Consultar solicitante <ArrowUpRight :size="14"/></button><button class="tool-button" @click="changeView('monitor')"><Activity :size="16"/> Monitoramento <ArrowUpRight :size="14"/></button></div></div>
@@ -203,6 +206,21 @@ function formatSla(used, target, isDone) { return `${used}/${target} min${isDone
                     <div class="notes-box"><label for="notes">Nota de trabalho (somente dados fictícios)</label><textarea id="notes" v-model="noteText" rows="3" maxlength="800" placeholder="Ex.: Conferi a identidade pelo procedimento; solicitação encaminhada para aprovação..."/><div class="notes-actions"><button class="button subtle compact" @click="doWait(hasPause ? 'retomar' : 'aguardando_usuário')"><Pause :size="14"/> Aguardar usuário</button><button class="button subtle compact" @click="doWait('aguardando_aprovação')"><Clock3 :size="14"/> Aguardar aprovação</button><button class="button primary compact" @click="doNote"><FileText :size="15"/> Registrar nota</button></div></div>
                   </template>
                   <div v-else class="ticket-completed"><CheckCircle2 :size="33"/><h3>{{ statusText(ticket.status) }}</h3><p>As decisões e evidências deste atendimento estão preservadas no histórico. A avaliação distingue boas decisões de desfechos inseguros.</p><button v-if="ticket.status==='resolvido' && !finished" class="button subtle" @click="doClose"><CheckCircle2 :size="16"/> Encerrar formalmente</button><button class="button ghost" @click="detailTab='history'">Ver histórico de decisões <ArrowRight :size="15"/></button></div>
+                </div>
+                <div v-else-if="detailTab === 'chat'" class="history-container">
+                  <h3>Conversa com {{ scenario.requester }}</h3>
+                  <p class="subtle-info">Mensagens roteirizadas: o personagem responde de acordo com palavras-chave e o cenário. Não é uma IA generativa. Suas mensagens ficam salvas no histórico do chamado.</p>
+                  <div class="ps-chat-thread" role="log" aria-label="Histórico da conversa">
+                    <div class="ps-message ps-incoming"><strong>{{ scenario.requester }}</strong><p>{{ scenario.description }}</p><small>{{ clock(ticket.openedAt) }}</small></div>
+                    <div v-for="(msg, idx) in (ticket.conversation || [])" :key="idx" :class="['ps-message',msg.from === 'agent' ? 'ps-outgoing' : 'ps-incoming']"><strong>{{ msg.from === 'agent' ? 'Você · L1' : scenario.requester }}</strong><p>{{ msg.text }}</p><small>{{ clock(msg.at) }}</small></div>
+                  </div>
+                  <div v-if="!isTerminal && !finished" class="ps-chat-compose">
+                    <label for="ps-message-input">Enviar mensagem</label>
+                    <textarea id="ps-message-input" v-model="chatText" rows="3" maxlength="500" placeholder="Escreva uma pergunta ou atualização para o solicitante..." @keydown.ctrl.enter.prevent="doChat"></textarea>
+                    <div class="ps-suggestions"><button v-for="suggestion in conversationSuggestions" :key="suggestion" type="button" class="button subtle compact" @click="chatText=suggestion">{{ suggestion }}</button></div>
+                    <button class="button primary" :disabled="!chatText.trim()" @click="doChat"><Send :size="15"/> Enviar mensagem</button>
+                  </div>
+                  <p v-else class="subtle-info">Atendimento concluído; conversa preservada para consulta.</p>
                 </div>
                 <div v-else class="history-container"><div v-if="!ticket.history.length" class="empty-state">Ainda não há ações registradas neste chamado.</div><div v-for="(entry,index) in [...ticket.history].reverse()" :key="index" :class="['history-entry', { 'history-danger': entry.critical }]"><div class="history-marker"></div><span class="history-time">{{ clock(entry.at) }} · {{ entry.type }}</span><p>{{ entry.message }}</p><strong v-if="entry.critical" class="critical-label"><AlertTriangle :size="13"/> {{ entry.critical }}</strong></div></div>
               </div>
