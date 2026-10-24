@@ -31,7 +31,7 @@ test('bloqueia ação sem investigação/documentação', () => {
   state = performChoice(state,'NS-1001','verify')
   const before = state.elapsed
   state = performChoice(state,'NS-1001','safe-reset')
-  assert.equal(state.elapsed,before)
+  assert.equal(state.elapsed,before+1)
   assert.equal(state.tickets['NS-1001'].stage,'process')
   assert.deepEqual(unmet(state,'NS-1001',['kb:password']),['abrir a KB-101'])
 })

@@ -11,7 +11,7 @@
 
 - Introdução narrativa com acesso instantâneo, sem login.
 - Fila de 8 tickets liberados pelo relógio virtual, com impacto, urgência, prioridade derivada e deadlines.
-- Primeiro contato com opções de comunicação adequadas e inadequadas.
+- Primeiro contato escrito livremente na conversa simulada por ticket.
 - Árvore de decisões com evidências verificáveis, pré-requisitos e consequências registradas.
 - Consultas à Knowledge Base, Employee Directory e Monitoring integradas ao histórico do chamado.
 - Work notes e status de espera com restrições de justificativa; fluxo de resolução, escalonamento e encerramento.
@@ -23,7 +23,7 @@
 
 ### Limites intencionais do MVP
 
-**Não há backend, e-mail/chat real, terminal com execução de código, autenticação ou inteligência artificial.** Chat e terminal aparecem como itens de versões futuras, sem interações enganosas. O Monitoramento exibe serviços simulados; a avaliação não é inviolável e não pode provar identidade. Ainda não existe criação livre de cenários pela interface, nem envio do relatório a recrutadores.
+**Não há backend, e-mail/chat real, terminal com execução de código, autenticação ou inteligência artificial.** Há conversas fictícias roteirizadas por ticket; o chat corporativo geral e o terminal aparecem como itens de versões futuras, sem controles ficticiamente funcionais. O Monitoramento exibe serviços simulados; a avaliação não é inviolável e não pode provar identidade. Ainda não existe criação livre de cenários pela interface, nem envio do relatório a recrutadores.
 
 ## Executar no Ubuntu
 
@@ -100,5 +100,21 @@ Todos os nomes, eventos, políticas, personagens e aplicações simuladas são i
 
 Veja `ARCHITECTURE.md` para o contrato do motor, `ROADMAP.md` para versões propostas e `COMO_PUBLICAR.md` para GitHub Pages.
 
-## v0.1.1 — Conversas por chamado
+## v0.1.2 — Conversas por chamado
 Na aba **Conversa** de cada chamado, escreva mensagens livres ou use sugestões. O personagem responde de forma roteirizada (não é IA). A primeira mensagem enviada conta como primeira resposta para o SLA, e o histórico é salvo localmente. A tomada de decisão do chamado continua disponível na aba Atendimento.
+
+## Atualização 0.1.2 — decisões sem gabarito
+
+As opções de atendimento não são rotuladas como seguras/inseguras. Não há marcação visual da alternativa considerada correta nem confirmação de perigo antes do clique. A primeira resposta é escrita pelo próprio analista na aba **Conversa**. Durante o turno, as ações mostram apenas consequências operacionais: estado, mensagens e possíveis impedimentos. **Notas, alertas críticos e análise dos caminhos escolhidos são revelados apenas quando você conclui o turno.**
+
+A base de conhecimento contém procedimentos disponíveis aos funcionários: são evidências do ambiente, e não um sistema de dicas sobre quais botões clicar. O tutorial explica a navegação, não revela soluções.
+
+### Atualização via navegador do GitHub
+
+Extraia o ZIP; em **Add file → Upload files**, envie os arquivos substituindo as versões antigas nos mesmos caminhos, preservando a pasta `.github/workflows/`. Se o navegador não atualizar arquivos aninhados facilmente, atualize `src/App.vue`, `src/engine/simulator.js`, `src/data/scenarios.js`, `src/style.css`, `package.json`, `tests/`, `README.md` e `CHANGELOG.md` pelo editor web. Não envie a pasta externa `proofstack-v0.1.2` como pasta única para dentro do repositório. O GitHub Actions deve publicar o conteúdo de `dist` gerado pelo build, não o `index.html` fonte.
+
+**Commit:** `feat: remove answer spoilers and defer assessment to end of shift`  
+**Tag:** `v0.1.2`  
+**Release:** `ProofStack v0.1.2 — Blind Decisions`
+
+Para experimentar as mudanças em um turno já iniciado, recomenda-se usar **Reiniciar**: isso apaga somente o progresso local e não modifica o repositório.

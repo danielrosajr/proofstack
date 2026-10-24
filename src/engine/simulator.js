@@ -38,6 +38,7 @@ function record(state, id, type, message, critical = null) {
   const entry = { at: state.elapsed, ticketId: id, type, message, critical }
   state.activity.push(entry)
   if (id && state.tickets[id]) state.tickets[id].history.push(entry)
+  return entry
 }
 function emitScheduled(state) {
   for (const scenario of scenarios) {
@@ -116,7 +117,7 @@ export function sendReply(state, id, quality = 'clear') {
   const critical = quality === 'password' ? 'Solicitação de senha ao usuário no primeiro contato.' : null
   record(next, id, 'reply', messages[quality], critical)
   consume(next, 3)
-  next.flash = quality === 'clear' ? 'Primeira resposta registrada corretamente.' : 'Resposta enviada. Confira o histórico e as consequências dessa comunicação.'
+  next.flash = 'Primeira resposta enviada. Horário registrado no chamado.'
   return next
 }
 // Scripted two-way conversations. Deterministic and persisted with the ticket.
@@ -156,7 +157,7 @@ export function sendConversation(state, id, message) {
   ticket.conversation.push({ at: next.elapsed + 1, from: 'employee', text: response })
   record(next, id, 'chat-in', `${s.requester}: ${response}`)
   consume(next, 2)
-  next.flash = critical ? 'Mensagem insegura registrada. O personagem recusou compartilhar segredos.' : 'Mensagem enviada e resposta simulada recebida. Confira a conversa.'
+  next.flash = 'Mensagem enviada. Há uma nova resposta na conversa.'
   return next
 }
 
@@ -223,7 +224,11 @@ export function performChoice(state, id, choiceId) {
   const missing = unmet(state, id, choice.requires)
   if (missing.length) {
     const next = structuredClone(state)
-    next.flash = `Antes desta decisão: ${missing.join(', ')}.`
+    // Falha operacional observável, sem antecipar a rubrica nem a resposta correta.
+    const entry = record(next, id, 'attempt', `Tentativa de execução: ${choice.text}`)
+    entry.review = `A execução não avançou. Registros ou pré-requisitos necessários: ${missing.join(', ')}.`
+    consume(next, 1)
+    next.flash = 'Não foi possível concluir a operação com as informações disponíveis. Verifique os registros e procedimentos da empresa.'
     return next
   }
   const next = structuredClone(state)
@@ -231,7 +236,10 @@ export function performChoice(state, id, choiceId) {
   addFlags(target, choice.set || [])
   if (choice.critical) addFlags(target, ['critical_error'])
   if (target.status === 'novo') target.status = 'em_andamento'
-  record(next, id, 'choice', choice.text + (choice.feedback ? ` — ${choice.feedback}` : ''), choice.critical || null)
+  const decision = record(next, id, 'choice', choice.text, choice.critical || null)
+  // Feedback avaliativo armazenado para o debrief, nunca exibido durante o turno.
+  decision.review = choice.feedback || (choice.critical ? choice.critical : null)
+  decision.choiceId = choice.id
   if (choice.finish) {
     target.status = choice.finish
     target.completedAt = next.elapsed + choice.minutes
@@ -240,7 +248,7 @@ export function performChoice(state, id, choiceId) {
     target.stage = choice.next
   }
   consume(next, choice.minutes)
-  next.flash = choice.feedback || (choice.finish ? `Chamado ${id} ${choice.finish}.` : 'Decisão registrada. Avance para a próxima etapa.')
+  next.flash = choice.finish ? `Status do chamado atualizado: ${choice.finish}.` : 'Ação registrada no atendimento. Consulte o estado atual do chamado.'
   return next
 }
 export function setWaiting(state, id, waiting) {
@@ -357,6 +365,19 @@ export function loadSession(storage = localStorage) {
     const value = JSON.parse(raw)
     if (value.version !== 1 || !value.tickets || !value.activity || !['playing','finished'].includes(value.phase)) return null
     if (scenarios.some(s => !value.tickets[s.id])) return null
+    // Compatibilidade com v0.1.1: removemos pareceres anexados ao histórico visível.
+    // Eles continuam guardados como "review" e só são mostrados ao final do turno.
+    for (const entry of [
+      ...value.activity,
+      ...Object.values(value.tickets).flatMap(ticket => ticket.history || [])
+    ]) {
+      if (entry.type === 'choice' && entry.message?.includes(' — ')) {
+        const splitAt = entry.message.indexOf(' — ')
+        entry.review ||= entry.message.slice(splitAt + 3)
+        entry.message = entry.message.slice(0, splitAt)
+      }
+    }
+    if (value.phase === 'playing') value.flash = 'Turno restaurado. Consulte a fila de chamados para continuar.'
     return value
   } catch { return null }
 }

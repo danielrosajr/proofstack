@@ -32,7 +32,7 @@ describe('estados e avaliações', () => {
     const blocked = performChoice(s,'NS-1001','safe-reset')
     expect(blocked.tickets['NS-1001'].stage).toBe('process')
     expect(blocked.tickets['NS-1001'].flags).not.toContain('safe_reset')
-    expect(blocked.flash).toMatch(/KB-101/)
+    expect(blocked.flash).toMatch(/não foi possível concluir/i)
   })
   it('fecha caminho correto do ticket de senha e preserva evidências', () => {
     let s = initSession()

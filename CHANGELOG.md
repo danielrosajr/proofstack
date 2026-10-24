@@ -1,3 +1,14 @@
+## v0.1.2 — Blind Decisions (2026-10-23)
+
+- Removidos avisos de opção insegura, cores diferenciadas, ícones de alerta e confirmações que denunciavam o resultado.
+- Reescritas as alternativas dos oito chamados com linguagem mais natural e dilemas de procedimento.
+- Primeira resposta agora é escrita livremente na conversa, sem opções prontas com gabarito implícito.
+- Removidos atalhos de mensagens sugeridas durante o atendimento.
+- Ações sem pré-requisitos produzem uma falha operacional; a avaliação detalhada só é mostrada depois do turno.
+- Relatório, erros críticos, recomendações e análises de escolhas ficam ocultos até o encerramento.
+- Preservado o registro de consequências e regras de avaliação para o debrief final.
+- Testes adicionais contra dicas antecipadas e regressões do simulador.
+
 ## v0.1.1 — Ticket Conversations
 
 - Conversa bidirecional por chamado com histórico persistente.
